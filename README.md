@@ -1,6 +1,7 @@
 # Beacon（灯塔）
 
 纯局域网 IP 直连的 Windows 远程协助工具：控制端（IT）输入被控端 IP 即可连接，无账号、无中继、零外网依赖。
+感谢KIMI K3的大力支持
 
 基于 [HopToDesk](https://github.com/hoptodesk/hoptodesk)（其本身基于 [RustDesk](https://github.com/rustdesk/rustdesk)）二次开发，许可证沿用 **AGPL-3.0**（见 `hoptodesk-main/LICENSE`）。
 
