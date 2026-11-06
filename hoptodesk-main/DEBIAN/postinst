@@ -1,0 +1,113 @@
+#!/bin/bash
+
+set -e
+
+if [ "$1" = configure ]; then
+
+	INVITE_CODE=""
+	# Walk up the process tree (dpkg → apt → shell) to find the .deb path
+	PID=$PPID
+	for _ in 1 2 3 4; do
+		if [ -f "/proc/$PID/cmdline" ]; then
+			DEB_PATH=$(tr '\0' '\n' < /proc/$PID/cmdline | grep -i 'HopToDeskPro-.*\.deb' | head -1 || true)
+			if [ -n "$DEB_PATH" ]; then
+				BASENAME=$(basename "$DEB_PATH" .deb)
+				CODE=$(echo "$BASENAME" | sed 's/^[^-]*-//')
+				if echo "$CODE" | grep -qE '^[A-Za-z0-9]{16}$'; then
+					INVITE_CODE="$CODE"
+					break
+				fi
+			fi
+			PID=$(awk '{print $4}' /proc/$PID/stat 2>/dev/null || echo 1)
+			[ "$PID" -gt 1 ] 2>/dev/null || break
+		else
+			break
+		fi
+	done
+
+	if [ -z "$INVITE_CODE" ]; then
+		for dir in /tmp /root/Downloads /root /home/*/Downloads /home/*/Desktop; do
+			[ -d "$dir" ] || continue
+			for f in "$dir"/HopToDeskPro-*.deb "$dir"/hoptodeskpro-*.deb; do
+				[ -f "$f" ] || continue
+				BASENAME=$(basename "$f" .deb)
+				CODE=$(echo "$BASENAME" | sed 's/^[^-]*-//')
+				if echo "$CODE" | grep -qE '^[A-Za-z0-9]{16}$'; then
+					INVITE_CODE="$CODE"
+					break 2
+				fi
+			done
+		done
+	fi
+
+	if [ -n "$INVITE_CODE" ]; then
+		for CONFIG_DIR in /root/.config/hoptodesk /home/*/.config/hoptodesk; do
+			[ -d "$(dirname "$CONFIG_DIR")" ] || continue
+			TOML_FILE="$CONFIG_DIR/HopToDesk2.toml"
+			mkdir -p "$CONFIG_DIR"
+			if [ ! -f "$TOML_FILE" ]; then
+				cat > "$TOML_FILE" << EOF
+[options]
+invite_code = "$INVITE_CODE"
+EOF
+				chmod 600 "$TOML_FILE"
+			elif ! grep -q 'invite_code' "$TOML_FILE"; then
+				if grep -q '\[options\]' "$TOML_FILE"; then
+					sed -i '/\[options\]/a invite_code = "'"$INVITE_CODE"'"' "$TOML_FILE"
+				else
+					echo '' >> "$TOML_FILE"
+					echo '[options]' >> "$TOML_FILE"
+					echo "invite_code = \"$INVITE_CODE\"" >> "$TOML_FILE"
+				fi
+			fi
+			# Fix ownership if it's a user's config dir
+			OWNER=$(stat -c '%U:%G' "$(dirname "$CONFIG_DIR")")
+			chown -R "$OWNER" "$CONFIG_DIR" 2>/dev/null || true
+		done
+	fi
+
+	if [ -d /usr/lib/cups/backend ]; then
+		cat > /usr/lib/cups/backend/hoptodesk << 'HOPCUPSEOF'
+#!/bin/sh
+if [ $# -eq 0 ]; then
+    echo "direct hoptodesk \"Unknown\" \"HopToDesk Printer\""
+    exit 0
+fi
+if [ -n "$6" ]; then
+    exec /usr/bin/hoptodesk --cups-print-job "$6"
+fi
+exec /usr/bin/hoptodesk --cups-print-job
+HOPCUPSEOF
+		chmod 755 /usr/lib/cups/backend/hoptodesk
+	fi
+
+	# Update desktop database and icon cache so app appears in menus
+	if command -v update-desktop-database >/dev/null 2>&1; then
+		update-desktop-database /usr/share/applications 2>/dev/null || true
+	fi
+	if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+		gtk-update-icon-cache -f -t /usr/share/icons/hicolor 2>/dev/null || true
+	fi
+
+	INITSYS=$(ls -al /proc/1/exe | awk -F' ' '{print $NF}' | awk -F'/' '{print $NF}')
+
+	if [ "systemd" == "$INITSYS" ]; then
+		if [ -e /etc/systemd/system/hoptodesk.service ]; then
+			rm /etc/systemd/system/hoptodesk.service
+		fi
+		version=$(python3 -V 2>&1 | grep -Po '(?<=Python )(.+)')
+		parsedVersion=$(echo "${version//./}")
+		cp /usr/share/hoptodesk/files/systemd/hoptodesk.service /etc/systemd/system/hoptodesk.service
+		systemctl daemon-reload
+		systemctl enable hoptodesk
+		systemctl start hoptodesk
+	elif [ "init" == "$INITSYS" ]; then
+        if [ -e /etc/init.d/hoptodesk ]; then
+            rm -f /etc/init.d/hoptodesk
+        fi
+		cp /usr/share/hoptodesk/files/sysvinit/hoptodesk.init /etc/init.d/hoptodesk
+		chmod +x /etc/init.d/hoptodesk
+		insserv -dv hoptodesk
+		service hoptodesk start
+    fi
+fi

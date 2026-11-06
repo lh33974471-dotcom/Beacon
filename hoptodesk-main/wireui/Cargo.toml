@@ -1,0 +1,94 @@
+[package]
+name = "wireui"
+version = "0.5.57"
+edition = "2021"
+publish = false
+description = "pure-Rust UI engine"
+license = "MIT"
+
+[lib]
+name = "wireui"
+
+[dependencies]
+log = "0.4"
+regress = "0.10"
+slotmap = "1.0"
+taffy = "0.5"
+vello = "0.3"
+wgpu = "22.1"
+# CPU raster backend (machines without a D3D12/Vulkan/Metal adapter). Both are
+# already resolved in the engine and client fork lockfiles; skrifa is the same
+# outline source vello uses, so CPU text matches GPU text shapes.
+tiny-skia = { version = "0.11", default-features = false, features = ["std", "simd"] }
+skrifa = "0.22"
+softbuffer = "0.4"
+parley = "0.2"
+image = { version = "0.25", default-features = false, features = ["png", "ico"] }
+pollster = "0.3"
+winit = "0.29"
+raw-window-handle = "0.6"
+# default-features off drops the Linux xdg-portal backend (ashpd -> zbus 4.0,
+# which conflicts with the client's keepawake -> zbus 3.15). Windows and macOS
+# backends are always compiled; the packaged wireui build is Windows-only.
+rfd = { version = "0.14", default-features = false }
+# Pinned to the version the client already builds on the nightly-2023-12-21
+# Windows toolchain, so the packaged build reuses it rather than resolving a
+# newer chrono with a higher MSRV.
+chrono = { version = "=0.4.41", default-features = false, features = ["clock"] }
+# Clipboard for view.clipboard(#get/#put) -- terminal copy/paste + address-book
+# Copy-ID. default-features off drops the Linux x11/wayland backends (the
+# packaged build is Windows-only; macOS + Windows backends still compile).
+arboard = { version = "3", default-features = false }
+# Linux file dialogs use the gtk3 backend: GTK is already a client dependency,
+# and it avoids the xdg-portal path (ashpd -> zbus 4.0) that conflicts with the
+# client's keepawake -> zbus 3.15. rfd on Linux without any backend feature
+# does not compile. x11-dl (already pulled by winit) drives XQueryPointer for
+# the file-transfer drag modal loop -- runtime-dlopened, no link requirement.
+[target.'cfg(any(target_os = "linux", target_os = "freebsd"))'.dependencies]
+rfd = { version = "0.14", default-features = false, features = ["gtk3"] }
+x11-dl = "2.21"
+libc = "0.2"
+
+# Pre-main constructor: on macOS the winit event loop must be created before
+# the client's AppKit calls (show_dock/menubar) initialize NSApplication.
+# objc: the client installs its own NSApp delegate (menubar/dock/URL-scheme),
+# clobbering winit's; a runtime-built multiplexing delegate keeps both alive.
+[target.'cfg(target_os = "macos")'.dependencies]
+accesskit = "=0.17.0"
+accesskit_macos = "=0.18.0"
+ctor = "0.2"
+objc = "0.2"
+
+# The modal drag loop (view.doEvent(#untilMouseUp)) polls the OS mouse directly
+# while the winit handler is blocked; winuser gives GetCursorPos /
+# GetAsyncKeyState / PeekMessage.
+[target.'cfg(target_os = "windows")'.dependencies]
+winapi = { version = "0.3", features = ["winuser", "windef", "wingdi", "shellapi", "datetimeapi", "minwinbase", "winnt"] }
+accesskit = "=0.17.0"
+accesskit_windows = "=0.24.0"
+
+[dev-dependencies]
+tempfile = "3"
+winit = "0.29"
+
+# objc's msg_send!/class! macros still expand the retired `cargo-clippy` cfg;
+# declaring it keeps every macOS build log from carrying ~35 copies of the warning.
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("cargo-clippy"))'] }
+
+[workspace]
+
+[patch.crates-io]
+fontique = { path = "../libs/fontique" }
+
+[profile.dev.package.objc2]
+debug-assertions = false
+
+[profile.dev.package.objc2-foundation]
+debug-assertions = false
+
+[profile.dev.package.objc2-metal]
+debug-assertions = false
+
+[profile.dev.package.objc2-quartz-core]
+debug-assertions = false

@@ -1,0 +1,7 @@
+hoptodesk-main.zip
+target/
+flutter/.dart_tool/
+flutter/build/
+build-*.log
+dist/
+.secrets/

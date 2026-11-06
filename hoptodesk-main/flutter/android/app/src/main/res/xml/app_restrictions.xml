@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<restrictions xmlns:android="http://schemas.android.com/apk/res/android">
+    <restriction
+        android:key="enrollment_token"
+        android:restrictionType="string"
+        android:title="@string/managed_enrollment_token_title"
+        android:description="@string/managed_enrollment_token_desc"
+        android:defaultValue="" />
+    <restriction
+        android:key="custom_api_url"
+        android:restrictionType="string"
+        android:title="@string/managed_custom_api_url_title"
+        android:description="@string/managed_custom_api_url_desc"
+        android:defaultValue="" />
+</restrictions>

@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">HopToDesk</string>
+    <string name="accessibility_service_description">Allow other devices to control your phone using virtual touch, when HopToDesk screen sharing is established</string>
+    <string name="managed_enrollment_token_title">Dashboard enrollment token</string>
+    <string name="managed_custom_api_url_title">Network settings URL</string>
+    <string name="managed_custom_api_url_desc">Link to your api.json with your own signal and TURN servers. Applied on every launch.</string>
+    <string name="managed_enrollment_token_desc">Auto-enroll this device into your HopToDesk dashboard on first launch. Paste the managed-deployment token from your dashboard.</string>
+</resources>

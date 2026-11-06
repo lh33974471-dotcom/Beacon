@@ -1,0 +1,9 @@
+[package]
+name = "hop_fips"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hbb_common = { path = "../hbb_common", features = ["fips"] }
+aws-lc-rs = { version = "=1.17.1", default-features = false, features = ["fips"] }
+aws-lc-fips-sys = "=0.13.11"

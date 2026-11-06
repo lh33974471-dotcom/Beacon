@@ -1,0 +1,135 @@
+#![allow(non_camel_case_types)]
+
+use std::ops::{BitAnd, BitOr};
+
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
+pub struct EVENT_GROUPS(pub u32);
+
+impl EVENT_GROUPS {
+    pub const HANDLE_INITIALIZATION: EVENT_GROUPS = EVENT_GROUPS(0x0000);
+    pub const HANDLE_MOUSE: EVENT_GROUPS = EVENT_GROUPS(0x0001);
+    pub const HANDLE_KEY: EVENT_GROUPS = EVENT_GROUPS(0x0002);
+    pub const HANDLE_FOCUS: EVENT_GROUPS = EVENT_GROUPS(0x0004);
+    pub const HANDLE_SCROLL: EVENT_GROUPS = EVENT_GROUPS(0x0008);
+    pub const HANDLE_TIMER: EVENT_GROUPS = EVENT_GROUPS(0x0010);
+    pub const HANDLE_SIZE: EVENT_GROUPS = EVENT_GROUPS(0x0020);
+    pub const HANDLE_DRAW: EVENT_GROUPS = EVENT_GROUPS(0x0040);
+    pub const HANDLE_DATA_ARRIVED: EVENT_GROUPS = EVENT_GROUPS(0x0080);
+    pub const HANDLE_BEHAVIOR_EVENT: EVENT_GROUPS = EVENT_GROUPS(0x0100);
+    pub const HANDLE_METHOD_CALL: EVENT_GROUPS = EVENT_GROUPS(0x0200);
+    pub const HANDLE_SCRIPTING_METHOD_CALL: EVENT_GROUPS = EVENT_GROUPS(0x0400);
+    pub const HANDLE_TISCRIPT_METHOD_CALL: EVENT_GROUPS = EVENT_GROUPS(0x0800);
+    pub const HANDLE_EXCHANGE: EVENT_GROUPS = EVENT_GROUPS(0x1000);
+    pub const HANDLE_GESTURE: EVENT_GROUPS = EVENT_GROUPS(0x2000);
+    pub const HANDLE_SOM: EVENT_GROUPS = EVENT_GROUPS(0x8000);
+    pub const HANDLE_ALL: EVENT_GROUPS = EVENT_GROUPS(0xFFFF);
+}
+
+impl BitOr for EVENT_GROUPS {
+    type Output = EVENT_GROUPS;
+    fn bitor(self, rhs: EVENT_GROUPS) -> EVENT_GROUPS {
+        EVENT_GROUPS(self.0 | rhs.0)
+    }
+}
+
+impl BitAnd for EVENT_GROUPS {
+    type Output = EVENT_GROUPS;
+    fn bitand(self, rhs: EVENT_GROUPS) -> EVENT_GROUPS {
+        EVENT_GROUPS(self.0 & rhs.0)
+    }
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
+pub enum PHASE_MASK {
+    BUBBLING = 0,
+    SINKING = 0x0_8000,
+    BUBBLING_HANDLED = 0x1_0000,
+    SINKING_HANDLED = 0x1_8000,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
+pub enum BEHAVIOR_EVENTS {
+    BUTTON_CLICK = 0x00,
+    BUTTON_PRESS = 0x01,
+    BUTTON_STATE_CHANGED = 0x02,
+    EDIT_VALUE_CHANGING = 0x03,
+    EDIT_VALUE_CHANGED = 0x04,
+    SELECT_SELECTION_CHANGED = 0x05,
+    SELECT_STATE_CHANGED = 0x06,
+    POPUP_REQUEST = 0x07,
+    POPUP_READY = 0x08,
+    POPUP_DISMISSED = 0x09,
+    MENU_ITEM_ACTIVE = 0x0A,
+    MENU_ITEM_CLICK = 0x0B,
+    CONTEXT_MENU_REQUEST = 0x10,
+    VISIUAL_STATUS_CHANGED = 0x11,
+    DISABLED_STATUS_CHANGED = 0x12,
+    POPUP_DISMISSING = 0x13,
+    CONTENT_CHANGED = 0x15,
+    CLICK = 0x16,
+    CHANGE = 0x17,
+    MEDIA_CHANGED = 0x18,
+    CONTENT_MODIFIED = 0x19,
+    HYPERLINK_CLICK = 0x80,
+    ELEMENT_COLLAPSED = 0x90,
+    ELEMENT_EXPANDED = 0x91,
+    ACTIVATE_CHILD = 0x92,
+    UI_STATE_CHANGED = 0x95,
+    FORM_SUBMIT = 0x96,
+    FORM_RESET = 0x97,
+    DOCUMENT_COMPLETE = 0x98,
+    HISTORY_PUSH = 0x99,
+    HISTORY_DROP = 0x9A,
+    HISTORY_PRIOR = 0x9B,
+    HISTORY_NEXT = 0x9C,
+    HISTORY_STATE_CHANGED = 0x9D,
+    CLOSE_POPUP = 0x9E,
+    REQUEST_TOOLTIP = 0x9F,
+    ANIMATION = 0xA0,
+    DOCUMENT_CREATED = 0xC0,
+    DOCUMENT_CLOSE_REQUEST = 0xC1,
+    DOCUMENT_CLOSE = 0xC2,
+    DOCUMENT_READY = 0xC3,
+    DOCUMENT_PARSED = 0xC4,
+    VIDEO_INITIALIZED = 0xD1,
+    VIDEO_STARTED = 0xD2,
+    VIDEO_STOPPED = 0xD3,
+    VIDEO_BIND_RQ = 0xD4,
+    PAGINATION_STARTS = 0xE0,
+    PAGINATION_PAGE = 0xE1,
+    PAGINATION_ENDS = 0xE2,
+    CUSTOM = 0xF0,
+    FIRST_APPLICATION_EVENT_CODE = 0x100,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
+pub enum CLICK_REASON {
+    BY_MOUSE_CLICK = 0,
+    BY_KEY_CLICK = 1,
+    SYNTHESIZED = 2,
+    BY_MOUSE_ON_ICON = 3,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
+pub enum EDIT_CHANGED_REASON {
+    BY_INS_CHAR = 0,
+    BY_INS_CHARS = 1,
+    BY_DEL_CHAR = 2,
+    BY_DEL_CHARS = 3,
+    BY_UNDO_REDO = 4,
+    BY_CODE = 5,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
+pub enum DRAW_EVENTS {
+    DRAW_BACKGROUND = 0,
+    DRAW_CONTENT = 1,
+    DRAW_FOREGROUND = 2,
+    DRAW_OUTLINE = 3,
+}
