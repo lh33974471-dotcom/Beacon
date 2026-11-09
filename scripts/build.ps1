@@ -41,6 +41,13 @@ if (-not $env:BEACON_FLEET_PASSWORD) {
     }
 }
 
+# 产品版本号：唯一来源是安装包脚本的 MyAppVersion，解析后注入 Rust 关于页。
+$issFile = Join-Path $PSScriptRoot "installer\BeaconSetup.iss"
+$versionLine = Select-String -Path $issFile -Pattern '#define\s+MyAppVersion\s+"([^"]+)"' | Select-Object -First 1
+if (-not $versionLine) { throw "无法从 $issFile 解析 MyAppVersion" }
+$env:BEACON_VERSION = $versionLine.Matches[0].Groups[1].Value
+Write-Host "==> 产品版本号: $env:BEACON_VERSION" -ForegroundColor Cyan
+
 # 桥接代码（src/bridge_generated.rs 等）缺失时重新生成
 if (-not (Test-Path (Join-Path $Src "src\bridge_generated.rs"))) {
     Write-Host "==> 生成 flutter_rust_bridge 桥接代码" -ForegroundColor Cyan

@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show InternetAddressType, NetworkInterface;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common/widgets/connection_page_title.dart';
@@ -33,6 +34,7 @@ class OnlineStatusWidget extends StatefulWidget {
 class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
   final _svcStopped = Get.find<RxBool>(tag: 'stop-service');
   final _svcIsUsingPublicServer = true.obs;
+  final _noNetwork = false.obs;
   Timer? _updateTimer;
 
   double get em => 14.0;
@@ -115,12 +117,14 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
               width: 8,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(4),
-                color: _svcStopped.value ||
-                        stateGlobal.svcStatus.value == SvcStatus.connecting
-                    ? kColorWarn
-                    : (stateGlobal.svcStatus.value == SvcStatus.ready
-                        ? Color.fromARGB(255, 50, 190, 166)
-                        : Color.fromARGB(255, 224, 79, 95)),
+                color: _noNetwork.value
+                    ? Color.fromARGB(255, 224, 79, 95)
+                    : (_svcStopped.value ||
+                            stateGlobal.svcStatus.value == SvcStatus.connecting
+                        ? kColorWarn
+                        : (stateGlobal.svcStatus.value == SvcStatus.ready
+                            ? Color.fromARGB(255, 50, 190, 166)
+                            : Color.fromARGB(255, 224, 79, 95))),
               ),
             ).marginSymmetric(horizontal: em),
             Container(
@@ -154,18 +158,22 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
   _buildConnStatusMsg() {
     widget.onSvcStatusChanged?.call();
     return Text(
-      _svcStopped.value
-          ? translate("Service is not running")
-          : stateGlobal.svcStatus.value == SvcStatus.connecting
-              ? translate("connecting_status")
-              : stateGlobal.svcStatus.value == SvcStatus.notReady
-                  ? translate("not_ready_status")
-                  : translate('Ready'),
+      _noNetwork.value
+          ? translate('no_network_status')
+          : _svcStopped.value
+              ? translate("Service is not running")
+              : stateGlobal.svcStatus.value == SvcStatus.connecting
+                  ? translate("connecting_status")
+                  : stateGlobal.svcStatus.value == SvcStatus.notReady
+                      ? translate("not_ready_status")
+                      : translate('Ready'),
       style: TextStyle(fontSize: em),
     );
   }
 
   updateStatus() async {
+    // Beacon LAN-only: report "no network" when no usable IPv4 NIC is up.
+    _noNetwork.value = !await _hasUsableIpv4();
     final status =
         jsonDecode(await bind.mainGetConnectStatus()) as Map<String, dynamic>;
     final statusNum = status['status_num'] as int;
@@ -182,6 +190,22 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
     try {
       stateGlobal.videoConnCount.value = status['video_conn_count'] as int;
     } catch (_) {}
+  }
+
+  /// Any non-loopback, non-link-local IPv4 means the LAN is usable.
+  Future<bool> _hasUsableIpv4() async {
+    try {
+      final interfaces = await NetworkInterface.list(
+          type: InternetAddressType.IPv4, includeLinkLocal: false);
+      for (final iface in interfaces) {
+        for (final addr in iface.addresses) {
+          if (!addr.isLoopback && !addr.address.startsWith('169.254.')) {
+            return true;
+          }
+        }
+      }
+    } catch (_) {}
+    return false;
   }
 }
 

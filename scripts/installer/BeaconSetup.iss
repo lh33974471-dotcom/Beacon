@@ -1,6 +1,6 @@
 ; Beacon 一键安装包（Inno Setup 6）
 ; 构建: & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" scripts\installer\BeaconSetup.iss
-#define MyAppVersion "1.2.0"
+#define MyAppVersion "1.3.0"
 #define PayloadDir "..\..\hoptodesk-main\flutter\build\windows\x64\runner\Release"
 
 [Setup]

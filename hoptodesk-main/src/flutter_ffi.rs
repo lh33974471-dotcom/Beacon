@@ -1053,7 +1053,13 @@ pub fn main_get_license() -> String {
 }
 
 pub fn main_get_version() -> String {
-    get_version()
+    // Beacon: show the product version (single source: installer script),
+    // not the upstream crate version kept for protocol gates.
+    if crate::lan_only::LAN_ONLY {
+        crate::lan_only::BEACON_VERSION.to_owned()
+    } else {
+        get_version()
+    }
 }
 
 pub fn main_get_fav() -> Vec<String> {

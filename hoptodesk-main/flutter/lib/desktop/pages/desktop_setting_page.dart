@@ -1,15 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
-import 'package:flutter_hbb/common/widgets/audio_input.dart';
 import 'package:flutter_hbb/common/widgets/setting_widgets.dart';
 import 'package:flutter_hbb/consts.dart';
-import 'package:flutter_hbb/desktop/pages/desktop_home_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
 import 'package:flutter_hbb/mobile/widgets/dialog.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
@@ -19,11 +15,8 @@ import 'package:flutter_hbb/models/state_model.dart';
 //import 'package:flutter_hbb/plugin/widgets/desktop_settings.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../common/widgets/dialog.dart';
-import '../../common/widgets/login.dart';
 
 const double _kTabWidth = 200;
 const double _kTabHeight = 42;
@@ -408,8 +401,6 @@ class _GeneralState extends State<_General> {
         theme(),
         _Card(title: 'Language', children: [language()]),
         //if (!isWeb) hwcodec(),
-        if (!isWeb) audio(context),
-        if (!isWeb) record(context),
         if (!isWeb) WaylandCard(),
         other()
       ],
@@ -580,124 +571,6 @@ class _GeneralState extends State<_General> {
     );
   }*/
 
-  Widget audio(BuildContext context) {
-    if (bind.isOutgoingOnly()) {
-      return const Offstage();
-    }
-
-    builder(devices, currentDevice, setDevice) {
-      final child = ComboBox(
-        keys: devices,
-        values: devices,
-        initialKey: currentDevice,
-        onChanged: (key) async {
-          setDevice(key);
-          setState(() {});
-        },
-      ).marginOnly(left: _kContentHMargin);
-      return _Card(title: 'Audio Input Device', children: [child]);
-    }
-
-    return AudioInput(builder: builder, isCm: false, isVoiceCall: false);
-  }
-
-  Widget record(BuildContext context) {
-    final showRootDir = isWindows && bind.mainIsInstalled();
-    return futureBuilder(future: () async {
-      String user_dir = bind.mainVideoSaveDirectory(root: false);
-      String root_dir =
-          showRootDir ? bind.mainVideoSaveDirectory(root: true) : '';
-      bool user_dir_exists = await Directory(user_dir).exists();
-      bool root_dir_exists =
-          showRootDir ? await Directory(root_dir).exists() : false;
-      return {
-        'user_dir': user_dir,
-        'root_dir': root_dir,
-        'user_dir_exists': user_dir_exists,
-        'root_dir_exists': root_dir_exists,
-      };
-    }(), hasData: (data) {
-      Map<String, dynamic> map = data as Map<String, dynamic>;
-      String user_dir = map['user_dir']!;
-      String root_dir = map['root_dir']!;
-      bool root_dir_exists = map['root_dir_exists']!;
-      bool user_dir_exists = map['user_dir_exists']!;
-      return _Card(title: 'Recording', children: [
-        if (!bind.isOutgoingOnly())
-          _OptionCheckBox(context, 'Automatically record incoming sessions',
-              kOptionAllowAutoRecordIncoming),
-        if (!bind.isIncomingOnly())
-          _OptionCheckBox(context, 'Automatically record outgoing sessions',
-              kOptionAllowAutoRecordOutgoing,
-              isServer: false),
-        if (showRootDir && !bind.isOutgoingOnly())
-          Row(
-            children: [
-              Text(
-                  '${translate(bind.isIncomingOnly() ? "Directory" : "Incoming")}:'),
-              Expanded(
-                child: GestureDetector(
-                    onTap: root_dir_exists
-                        ? () => launchUrl(Uri.file(root_dir))
-                        : null,
-                    child: Text(
-                      root_dir,
-                      softWrap: true,
-                      style: root_dir_exists
-                          ? const TextStyle(
-                              decoration: TextDecoration.underline)
-                          : null,
-                    )).marginOnly(left: 10),
-              ),
-            ],
-          ).marginOnly(left: _kContentHMargin),
-        if (!(showRootDir && bind.isIncomingOnly()))
-          Row(
-            children: [
-              Text(
-                  '${translate((showRootDir && !bind.isOutgoingOnly()) ? "Outgoing" : "Directory")}:'),
-              Expanded(
-                child: GestureDetector(
-                    onTap: user_dir_exists
-                        ? () => launchUrl(Uri.file(user_dir))
-                        : null,
-                    child: Text(
-                      user_dir,
-                      softWrap: true,
-                      style: user_dir_exists
-                          ? const TextStyle(
-                              decoration: TextDecoration.underline)
-                          : null,
-                    )).marginOnly(left: 10),
-              ),
-              ElevatedButton(
-                      onPressed: isOptionFixed(kOptionVideoSaveDirectory)
-                          ? null
-                          : () async {
-                              String? initialDirectory;
-                              if (await Directory.fromUri(
-                                      Uri.directory(user_dir))
-                                  .exists()) {
-                                initialDirectory = user_dir;
-                              }
-                              String? selectedDirectory =
-                                  await FilePicker.platform.getDirectoryPath(
-                                      initialDirectory: initialDirectory);
-                              if (selectedDirectory != null) {
-                                await bind.mainSetLocalOption(
-                                    key: kOptionVideoSaveDirectory,
-                                    value: selectedDirectory);
-                                setState(() {});
-                              }
-                            },
-                      child: Text(translate('Change')))
-                  .marginOnly(left: 5),
-            ],
-          ).marginOnly(left: _kContentHMargin),
-      ]);
-    });
-  }
-
   Widget language() {
     return futureBuilder(future: () async {
       String langs = await bind.mainGetLangs();
@@ -765,142 +638,11 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
               block: locked,
               child: Column(children: [
                 permissions(context),
-                password(context),
-                _Card(title: '2FA', children: [tfa()]),
-                _Card(title: 'ID', children: [changeId()]),
                 more(context),
               ]),
             ),
           ],
         )).marginOnly(bottom: _kListViewBottomMargin);
-  }
-
-  Widget tfa() {
-    bool enabled = !locked;
-    // Simple temp wrapper for PR check
-    tmpWrapper() {
-      RxBool has2fa = bind.mainHasValid2FaSync().obs;
-      RxBool hasBot = bind.mainHasValidBotSync().obs;
-      update() async {
-        has2fa.value = bind.mainHasValid2FaSync();
-        setState(() {});
-      }
-
-      onChanged(bool? checked) async {
-        if (checked == false) {
-          CommonConfirmDialog(
-              gFFI.dialogManager, translate('cancel-2fa-confirm-tip'), () {
-            change2fa(callback: update);
-          });
-        } else {
-          change2fa(callback: update);
-        }
-      }
-
-      final tfa = GestureDetector(
-        child: InkWell(
-          child: Obx(() => Row(
-                children: [
-                  Checkbox(
-                          value: has2fa.value,
-                          onChanged: enabled ? onChanged : null)
-                      .marginOnly(right: 5),
-                  Expanded(
-                      child: Text(
-                    translate('enable-2fa-title'),
-                    style:
-                        TextStyle(color: disabledTextColor(context, enabled)),
-                  ))
-                ],
-              )),
-        ),
-        onTap: () {
-          onChanged(!has2fa.value);
-        },
-      ).marginOnly(left: _kCheckBoxLeftMargin);
-      if (!has2fa.value) {
-        return tfa;
-      }
-      updateBot() async {
-        hasBot.value = bind.mainHasValidBotSync();
-        setState(() {});
-      }
-
-      onChangedBot(bool? checked) async {
-        if (checked == false) {
-          CommonConfirmDialog(
-              gFFI.dialogManager, translate('cancel-bot-confirm-tip'), () {
-            changeBot(callback: updateBot);
-          });
-        } else {
-          changeBot(callback: updateBot);
-        }
-      }
-
-      final bot = GestureDetector(
-        child: Tooltip(
-          waitDuration: Duration(milliseconds: 300),
-          message: translate("enable-bot-tip"),
-          child: InkWell(
-              child: Obx(() => Row(
-                    children: [
-                      Checkbox(
-                              value: hasBot.value,
-                              onChanged: enabled ? onChangedBot : null)
-                          .marginOnly(right: 5),
-                      Expanded(
-                          child: Text(
-                        translate('Telegram bot'),
-                        style: TextStyle(
-                            color: disabledTextColor(context, enabled)),
-                      ))
-                    ],
-                  ))),
-        ),
-        onTap: () {
-          onChangedBot(!hasBot.value);
-        },
-      ).marginOnly(left: _kCheckBoxLeftMargin + 30);
-
-      final trust = Row(
-        children: [
-          Flexible(
-            child: Tooltip(
-              waitDuration: Duration(milliseconds: 300),
-              message: translate("enable-trusted-devices-tip"),
-              child: _OptionCheckBox(context, "Enable trusted devices",
-                  kOptionEnableTrustedDevices,
-                  enabled: !locked, update: (v) {
-                setState(() {});
-              }),
-            ),
-          ),
-          if (mainGetBoolOptionSync(kOptionEnableTrustedDevices))
-            ElevatedButton(
-                onPressed: locked
-                    ? null
-                    : () {
-                        manageTrustedDeviceDialog();
-                      },
-                child: Text(translate('Manage trusted devices')))
-        ],
-      ).marginOnly(left: 30);
-
-      return Column(
-        children: [tfa, bot, trust],
-      );
-    }
-
-    return tmpWrapper();
-  }
-
-  Widget changeId() {
-    return ChangeNotifierProvider.value(
-        value: gFFI.serverModel,
-        child: Consumer<ServerModel>(builder: ((context, model, child) {
-          return _Button('Change ID', changeIdDialog,
-              enabled: !locked && model.connectStatus > 0);
-        })));
   }
 
   Widget permissions(context) {
@@ -963,24 +705,13 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
                 enabled: enabled, fakeValue: fakeValue),
             _OptionCheckBox(context, 'Enable audio', kOptionEnableAudio,
                 enabled: enabled, fakeValue: fakeValue),
-            _OptionCheckBox(context, 'Enable camera', kOptionEnableCamera,
-                enabled: enabled, fakeValue: fakeValue),
-            _OptionCheckBox(
-                context, 'Enable TCP tunneling', kOptionEnableTunnel,
-                enabled: enabled, fakeValue: fakeValue),
             _OptionCheckBox(
                 context, 'Enable remote restart', kOptionEnableRemoteRestart,
-                enabled: enabled, fakeValue: fakeValue),
-            _OptionCheckBox(
-                context, 'Enable recording session', kOptionEnableRecordSession,
                 enabled: enabled, fakeValue: fakeValue),
             if (isWindows)
               _OptionCheckBox(context, 'Enable blocking user input',
                   kOptionEnableBlockInput,
                   enabled: enabled, fakeValue: fakeValue),
-            _OptionCheckBox(context, 'Enable remote configuration modification',
-                kOptionAllowRemoteConfigModification,
-                enabled: enabled, fakeValue: fakeValue),
           ],
         ),
       ]);
@@ -989,135 +720,10 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
     return tmpWrapper();
   }
 
-  Widget password(BuildContext context) {
-    return ChangeNotifierProvider.value(
-        value: gFFI.serverModel,
-        child: Consumer<ServerModel>(builder: ((context, model, child) {
-          List<String> passwordKeys = [
-            kUseTemporaryPassword,
-            kUsePermanentPassword,
-            kUseBothPasswords,
-          ];
-          List<String> passwordValues = [
-            translate('Use one-time password'),
-            translate('Use permanent password'),
-            translate('Use both passwords'),
-          ];
-          bool tmpEnabled = model.verificationMethod != kUsePermanentPassword;
-          bool permEnabled = model.verificationMethod != kUseTemporaryPassword;
-          String currentValue =
-              passwordValues[passwordKeys.indexOf(model.verificationMethod)];
-          List<Widget> radios = passwordValues
-              .map((value) => _Radio<String>(
-                    context,
-                    value: value,
-                    groupValue: currentValue,
-                    label: value,
-                    onChanged: locked
-                        ? null
-                        : ((value) async {
-                            callback() async {
-                              await model.setVerificationMethod(
-                                  passwordKeys[passwordValues.indexOf(value)]);
-                              await model.updatePasswordModel();
-                            }
-
-                            if (value ==
-                                    passwordValues[passwordKeys
-                                        .indexOf(kUsePermanentPassword)] &&
-                                (await bind.mainGetPermanentPassword())
-                                    .isEmpty) {
-                              setPasswordDialog(notEmptyCallback: callback);
-                            } else {
-                              await callback();
-                            }
-                          }),
-                  ))
-              .toList();
-
-          var onChanged = tmpEnabled && !locked
-              ? (value) {
-                  if (value != null) {
-                    () async {
-                      await model.setTemporaryPasswordLength(value.toString());
-                      await model.updatePasswordModel();
-                    }();
-                  }
-                }
-              : null;
-          List<Widget> lengthRadios = ['6', '8', '10']
-              .map((value) => GestureDetector(
-                    child: Row(
-                      children: [
-                        Radio(
-                            value: value,
-                            groupValue: model.temporaryPasswordLength,
-                            onChanged: onChanged),
-                        Text(
-                          value,
-                          style: TextStyle(
-                              color: disabledTextColor(
-                                  context, onChanged != null)),
-                        ),
-                      ],
-                    ).paddingOnly(right: 10),
-                    onTap: () => onChanged?.call(value),
-                  ))
-              .toList();
-
-          final modeKeys = <String>[
-            'password',
-            'click',
-            defaultOptionApproveMode
-          ];
-          final modeValues = [
-            translate('Accept sessions via password'),
-            translate('Accept sessions via click'),
-            translate('Accept sessions via both'),
-          ];
-          var modeInitialKey = model.approveMode;
-          if (!modeKeys.contains(modeInitialKey)) {
-            modeInitialKey = defaultOptionApproveMode;
-          }
-          final usePassword = model.approveMode != 'click';
-
-          final isApproveModeFixed = isOptionFixed(kOptionApproveMode);
-          return _Card(title: 'Password', children: [
-            ComboBox(
-              enabled: !locked && !isApproveModeFixed,
-              keys: modeKeys,
-              values: modeValues,
-              initialKey: modeInitialKey,
-              onChanged: (key) => model.setApproveMode(key),
-            ).marginOnly(left: _kContentHMargin),
-            if (usePassword) radios[0],
-            if (usePassword)
-              _SubLabeledWidget(
-                  context,
-                  'One-time password length',
-                  Row(
-                    children: [
-                      ...lengthRadios,
-                    ],
-                  ),
-                  enabled: tmpEnabled && !locked),
-            if (usePassword) radios[1],
-            if (usePassword)
-              _SubButton('Set permanent password', setPasswordDialog,
-                  permEnabled && !locked),
-            // if (usePassword)
-            //   hide_cm(!locked).marginOnly(left: _kContentHSubMargin - 6),
-            if (usePassword) radios[2],
-          ]);
-        })));
-  }
-
   Widget more(BuildContext context) {
     bool enabled = !locked;
     return _Card(title: 'Security', children: [
       shareRdp(context, enabled),
-      _OptionCheckBox(context, 'Deny LAN Discovery', 'enable-lan-discovery',
-          reverse: true, enabled: enabled),
       ...directIp(context),
       whitelist(),
       ...autoDisconnect(context),
@@ -1125,7 +731,6 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
         _OptionCheckBox(context, 'allow-only-conn-window-open-tip',
             'allow-only-conn-window-open',
             reverse: false, enabled: enabled),
-      if (bind.mainIsInstalled()) unlockPin()
     ]);
   }
 
@@ -1372,39 +977,6 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
         );
       }(),
     ];
-  }
-  Widget unlockPin() {
-    bool enabled = !locked;
-    RxString unlockPin = bind.mainGetUnlockPin().obs;
-    update() async {
-      unlockPin.value = bind.mainGetUnlockPin();
-    }
-
-    onChanged(bool? checked) async {
-      changeUnlockPinDialog(unlockPin.value, update);
-    }
-
-    final isOptFixed = isOptionFixed(kOptionWhitelist);
-    return GestureDetector(
-      child: Obx(() => Row(
-            children: [
-              Checkbox(
-                      value: unlockPin.isNotEmpty,
-                      onChanged: enabled && !isOptFixed ? onChanged : null)
-                  .marginOnly(right: 5),
-              Expanded(
-                  child: Text(
-                translate('Unlock with PIN'),
-                style: TextStyle(color: disabledTextColor(context, enabled)),
-              ))
-            ],
-          )),
-      onTap: enabled
-          ? () {
-              onChanged(!unlockPin.isNotEmpty);
-            }
-          : null,
-    ).marginOnly(left: _kCheckBoxLeftMargin);
   }
 }
 
@@ -1887,26 +1459,19 @@ class _AboutState extends State<_About> {
   @override
   Widget build(BuildContext context) {
     return futureBuilder(future: () async {
-      final license = await bind.mainGetLicense();
       final version = await bind.mainGetVersion();
       final buildDate = await bind.mainGetBuildDate();
-      final fingerprint = await bind.mainGetFingerprint();
       return {
-        'license': license,
         'version': version,
         'buildDate': buildDate,
-        'fingerprint': fingerprint
       };
     }(), hasData: (data) {
-      final license = data['license'].toString();
       final version = data['version'].toString();
       final buildDate = data['buildDate'].toString();
-      final fingerprint = data['fingerprint'].toString();
-      const linkStyle = TextStyle(decoration: TextDecoration.underline);
       final scrollController = ScrollController();
       return SingleChildScrollView(
         controller: scrollController,
-        child: _Card(title: translate('About RustDesk'), children: [
+        child: _Card(title: translate('About Beacon'), children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1919,53 +1484,10 @@ class _AboutState extends State<_About> {
                   SelectionArea(
                       child: Text('${translate('Build Date')}: $buildDate')
                           .marginSymmetric(vertical: 4.0)),
-              if (!isWeb)
-                  SelectionArea(
-                      child: Text('${translate('Fingerprint')}: $fingerprint')
-                          .marginSymmetric(vertical: 4.0)),
-                  InkWell(
-                      onTap: () {
-                        launchUrlString('https://rustdesk.com/privacy.html');
-                      },
-                      child: Text(
-                        translate('Privacy Statement'),
-                        style: linkStyle,
-                      ).marginSymmetric(vertical: 4.0)),
-                  InkWell(
-                      onTap: () {
-                        launchUrlString('https://rustdesk.com');
-                      },
-                      child: Text(
-                        translate('Website'),
-                        style: linkStyle,
-                      ).marginSymmetric(vertical: 4.0)),
-                  Container(
-                    decoration: const BoxDecoration(color: Color(0xFF2c8cff)),
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
-                    child: SelectionArea(
-                        child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Copyright © ${DateTime.now().toString().substring(0, 4)} Purslane Ltd.\n$license',
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                              Text(
-                                translate('Slogan_tip'),
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white),
-                              )
-                            ],
-                          ),
-                        ),
-                      ],
-                    )),
-                  ).marginSymmetric(vertical: 4.0)
+                  Text(
+                    '基于 HopToDesk / RustDesk 二次开发 · AGPL-3.0',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ).marginSymmetric(vertical: 4.0),
                 ],
               ).marginOnly(left: _kContentHMargin)
             ]),

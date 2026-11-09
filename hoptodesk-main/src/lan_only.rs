@@ -18,6 +18,15 @@ pub const BAKED_PASSWORD: &str = match option_env!("BEACON_FLEET_PASSWORD") {
     None => "CHANGE-ME-BEFORE-DEPLOY",
 };
 
+/// Beacon product version shown in the About page. Single source of truth is
+/// `MyAppVersion` in scripts/installer/BeaconSetup.iss; build.ps1 injects it
+/// via the BEACON_VERSION env var. The crate VERSION stays at the upstream
+/// hoptodesk value for protocol compatibility checks.
+pub const BEACON_VERSION: &str = match option_env!("BEACON_VERSION") {
+    Some(v) => v,
+    None => "0.0.0-dev",
+};
+
 fn is_lan_ip(ip: &IpAddr) -> bool {
     match ip {
         IpAddr::V4(v4) => v4.is_private() || v4.is_loopback() || v4.is_link_local(),
