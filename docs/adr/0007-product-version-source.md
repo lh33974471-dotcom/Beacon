@@ -9,3 +9,5 @@ Beacon 同时存在两个版本号：Rust crate 的 `VERSION`（沿用上游 hop
 - 发版只需改 `BeaconSetup.iss` 一处的 `MyAppVersion`，安装包文件名、控制面板版本、关于页自动一致。
 - 不用 `build.ps1` 直接 cargo 构建时，关于页显示 `0.0.0-dev`，属预期。
 - crate `VERSION` 保持上游值，仅用于协议版本门控，不要再拿它做对外展示。
+
+补充（v1.3.1）：关于页「构建日期」同样改为构建期注入（`BEACON_BUILD_DATE`，build.ps1 取打包当前时间），替代上游缓存在 cargo 依赖里的 BUILD_DATE；同时 build.rs 补上 `rerun-if-env-changed` 声明，避免纯版本号升级时误用缓存。

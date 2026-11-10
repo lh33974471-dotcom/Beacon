@@ -199,6 +199,8 @@ fn send_menu_class_id() {
 
 fn main() {
     println!("cargo:rerun-if-env-changed=BEACON_FLEET_PASSWORD");
+    println!("cargo:rerun-if-env-changed=BEACON_VERSION");
+    println!("cargo:rerun-if-env-changed=BEACON_BUILD_DATE");
     send_menu_class_id();
     hbb_common::gen_version();
     install_android_deps();

@@ -27,6 +27,15 @@ pub const BEACON_VERSION: &str = match option_env!("BEACON_VERSION") {
     None => "0.0.0-dev",
 };
 
+/// Beacon packaging timestamp shown in the About page. Injected by build.ps1
+/// at packaging time via BEACON_BUILD_DATE. Unlike the upstream BUILD_DATE
+/// (cached per cargo build of hbb_common and quickly stale), this always
+/// reflects the installer build run.
+pub const BEACON_BUILD_DATE: &str = match option_env!("BEACON_BUILD_DATE") {
+    Some(d) => d,
+    None => "",
+};
+
 fn is_lan_ip(ip: &IpAddr) -> bool {
     match ip {
         IpAddr::V4(v4) => v4.is_private() || v4.is_loopback() || v4.is_link_local(),

@@ -73,3 +73,5 @@ flutter_rust_bridge_codegen --rust-input src/flutter_ffi.rs --dart-output flutte
 - `Cargo.lock` 已固定版本，首次构建 cargo 下载数 GB（`CARGO_HOME` 与 `CARGO_TARGET_DIR` 已在 D 盘）。
 - Flutter Windows 构建需要 VS 的 "Desktop development with C++" 负载完整，缺了会报 CMake 错误。
 - VS Build Tools 安装器里把 "安装位置" 选到 D 盘只能挪编译器本体；Windows SDK 必定落 C 盘，属正常现象，不影响使用。
+
+- 从 Codex 沙箱内跑构建会在 `flutter pub get` 假死（无任何输出）：沙箱对 `D:\3.Cache` 只读，`flutter.bat` 的锁文件重定向静默失败进入无限重试；构建必须提权（非沙箱）运行 `scripts\build-installer.ps1`。

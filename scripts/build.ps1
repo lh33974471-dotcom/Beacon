@@ -47,6 +47,8 @@ $versionLine = Select-String -Path $issFile -Pattern '#define\s+MyAppVersion\s+"
 if (-not $versionLine) { throw "无法从 $issFile 解析 MyAppVersion" }
 $env:BEACON_VERSION = $versionLine.Matches[0].Groups[1].Value
 Write-Host "==> 产品版本号: $env:BEACON_VERSION" -ForegroundColor Cyan
+$env:BEACON_BUILD_DATE = Get-Date -Format 'yyyy-MM-dd HH:mm'
+Write-Host "==> 构建日期: $env:BEACON_BUILD_DATE" -ForegroundColor Cyan
 
 # 桥接代码（src/bridge_generated.rs 等）缺失时重新生成
 if (-not (Test-Path (Join-Path $Src "src\bridge_generated.rs"))) {

@@ -1960,7 +1960,13 @@ pub fn cm_get_config(name: String) -> String {
 }
 
 pub fn main_get_build_date() -> String {
-    crate::BUILD_DATE.to_string()
+    // Beacon: show the packaging time injected by build.ps1; the upstream
+    // BUILD_DATE is cached per cargo build and goes stale.
+    if crate::lan_only::LAN_ONLY {
+        crate::lan_only::BEACON_BUILD_DATE.to_owned()
+    } else {
+        crate::BUILD_DATE.to_string()
+    }
 }
 
 pub fn translate(name: String, locale: String) -> SyncReturn<String> {
